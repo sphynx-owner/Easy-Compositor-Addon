@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bmhr0fmnhty1k"
+path="res://.godot/imported/render_shader.glsl-a6266e1c6935c12c9ae875dc21e3778a.res"
+
+[deps]
+
+source_file="res://addons/easy-compositor/stencil/render_shader.glsl"
+dest_files=["res://.godot/imported/render_shader.glsl-a6266e1c6935c12c9ae875dc21e3778a.res"]
+
+[params]
+
