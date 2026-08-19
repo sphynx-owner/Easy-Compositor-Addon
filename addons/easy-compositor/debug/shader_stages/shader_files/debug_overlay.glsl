@@ -9,6 +9,7 @@
 layout(rgba16f, set = 0, binding = 0) uniform image2D past_color_image;
 layout(rgba16f, set = 0, binding = 1) uniform image2D output_color_image;
 layout(set = 0, binding = 2) uniform sampler2D color_sampler;
+// DEBUG_UNIFOsRMS
 
 layout(push_constant, std430) uniform Params 
 {
@@ -28,17 +29,26 @@ layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 void main() 
 {
 	ivec2 render_size = ivec2(textureSize(color_sampler, 0));
+	
+	if (params.draw_debug > 0 || params.freeze > 0)
+	{
+		render_size /= 2;
+	}
+
 	ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+
 	if ((uvi.x >= render_size.x) || (uvi.y >= render_size.y)) 
 	{
 		return;
 	}
+
 	// show past image for freeze frame
 	if(params.freeze > 0)
 	{
 		imageStore(output_color_image, uvi, imageLoad(past_color_image, uvi));
 		return;
 	}
+
 	// must be on pixel center for whole values (tested)
 	vec2 uvn = vec2(uvi + vec2(0.5)) / render_size;
 
@@ -62,26 +72,36 @@ void main()
 #ifdef DEBUG
 	if(params.debug_page == 0)
 	{
-		tl_col = imageLoad(debug_1_image, uvi);
-		tr_col = imageLoad(debug_2_image, uvi);
-		bl_col = imageLoad(debug_3_image, uvi);
-		br_col = imageLoad(debug_4_image, uvi);
+		tl_col = imageLoad(debug_1_image, uvi * 2.0);
+		tr_col = imageLoad(debug_2_image, uvi * 2.0);
+		bl_col = imageLoad(debug_3_image, uvi * 2.0);
+		br_col = imageLoad(debug_4_image, uvi * 2.0);
 	}
+	
 	if(params.debug_page == 1)
 	{
-		tl_col = imageLoad(debug_5_image, uvi);
-		tr_col = imageLoad(debug_6_image, uvi);
-		bl_col = imageLoad(debug_7_image, uvi);
-		br_col = imageLoad(debug_8_image, uvi);
+		tl_col = imageLoad(debug_5_image, uvi * 2.0);
+		tr_col = imageLoad(debug_6_image, uvi * 2.0);
+		bl_col = imageLoad(debug_7_image, uvi * 2.0);
+		br_col = imageLoad(debug_8_image, uvi * 2.0);
 	}
 #endif
 
-	imageStore(output_color_image, uvi / 2, tl_col);
-	imageStore(output_color_image, uvi / 2 + ivec2(vec2(0.5, 0.5) * render_size), br_col);
-	imageStore(output_color_image, uvi / 2 + ivec2(vec2(0.0, 0.5) * render_size), bl_col);
-	imageStore(output_color_image, uvi / 2 + ivec2(vec2(0.5, 0.0) * render_size), tr_col);
-	imageStore(past_color_image, uvi / 2, tl_col);
-	imageStore(past_color_image, uvi / 2 + ivec2(vec2(0.5, 0.5) * render_size), br_col);
-	imageStore(past_color_image, uvi / 2 + ivec2(vec2(0.0, 0.5) * render_size), bl_col);
-	imageStore(past_color_image, uvi / 2 + ivec2(vec2(0.5, 0.0) * render_size), tr_col);
+	ivec2 tl_uvi = uvi + ivec2(vec2(0.0, 0.0) * render_size);
+
+	ivec2 tr_uvi = uvi + ivec2(vec2(1.0, 0.0) * render_size);
+
+	ivec2 bl_uvi = uvi + ivec2(vec2(0.0, 1.0) * render_size);
+
+	ivec2 br_uvi = uvi + ivec2(vec2(1.0, 1.0) * render_size);
+
+	imageStore(output_color_image,  tl_uvi, tl_col);
+	imageStore(output_color_image, tr_uvi, tr_col);
+	imageStore(output_color_image, bl_uvi, bl_col);
+	imageStore(output_color_image, br_uvi, br_col);
+
+	imageStore(past_color_image, tl_uvi, tl_col);
+	imageStore(past_color_image, tr_uvi, tr_col);
+	imageStore(past_color_image, bl_uvi, bl_col);
+	imageStore(past_color_image, br_uvi, br_col);
 }

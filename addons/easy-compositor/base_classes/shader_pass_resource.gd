@@ -4,47 +4,19 @@ class_name ShaderStageResource
 
 @export var shader_file : RDShaderFile:
 	set(value):
+		if shader_file == value:
+			return
+		
+		if shader_file and shader_file.changed.is_connected(emit_changed):
+			shader_file.changed.disconnect(emit_changed)
+		
 		shader_file = value
+		
+		if shader_file and !shader_file.changed.is_connected(emit_changed):
+			shader_file.changed.connect(emit_changed)
+		
 		emit_changed()
-
-var shader : RID
-var pipeline : RID
-var rd: RenderingDevice
 
 
 func _init(p_shader_file = null):
-	if p_shader_file:
-		shader_file = p_shader_file
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_PREDELETE:
-		if !rd:
-			return
-		
-		if rd.compute_pipeline_is_valid(pipeline):
-			rd.free_rid(pipeline)
-			pipeline = RID()
-		if shader.is_valid():
-			rd.free_rid(shader)
-			shader = RID()
-		
-		rd = null
-
-
-func is_generated() -> bool:
-	return rd != null
-
-
-func free_rids() -> void:
-	if !rd:
-		return
-	
-	if rd.compute_pipeline_is_valid(pipeline):
-		rd.free_rid(pipeline)
-		pipeline = RID()
-	if shader.is_valid():
-		rd.free_rid(shader)
-		shader = RID()
-	
-	rd = null
+	shader_file = p_shader_file
