@@ -92,7 +92,6 @@ func _render_callback(p_effect_callback_type, p_render_data):
 		for debug_texture in DEBUG_TEXTURE_NAMES:
 			ensure_texture(debug_texture, render_scene_buffers)
 		
-		
 		for debug_texture in DEBUG_TEXTURE_NAMES:
 			all_debug_images.append(get_texture(debug_texture, render_scene_buffers))
 	
@@ -180,7 +179,7 @@ func get_push_constants(
 
 func dispatch_stage(stage : ShaderStageResource, uniforms : Array[RDUniform], push_constants : PackedByteArray, dispatch_size : Vector3i, label : String = "DefaultLabel", view : int = 0, color : Color = Color(1, 1, 1, 1)):
 	if !_all_shader_stages.has(stage):
-		_all_shader_stages[stage] = CompiledShaderStage.new(rd, stage)
+		_all_shader_stages[stage] = CompiledShaderStage.new(rd, stage, debug)
 	
 	var compiled_shader_stage: CompiledShaderStage = _all_shader_stages[stage]
 	

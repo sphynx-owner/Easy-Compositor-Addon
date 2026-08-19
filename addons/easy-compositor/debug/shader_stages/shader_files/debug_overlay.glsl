@@ -61,7 +61,7 @@ void main()
 		return;
 	}
 
-	vec4 tl_col;
+	vec4 tl_col = vec4(1.0);
 
 	vec4 tr_col;
 
@@ -72,25 +72,22 @@ void main()
 #ifdef DEBUG
 	if(params.debug_page == 0)
 	{
-		tl_col = imageLoad(debug_1_image, uvi * 2.0);
-		tr_col = imageLoad(debug_2_image, uvi * 2.0);
-		bl_col = imageLoad(debug_3_image, uvi * 2.0);
-		br_col = imageLoad(debug_4_image, uvi * 2.0);
+		tl_col = imageLoad(debug_1_image, uvi * 2);
+		tr_col = imageLoad(debug_2_image, uvi * 2);
+		bl_col = imageLoad(debug_3_image, uvi * 2);
+		br_col = imageLoad(debug_4_image, uvi * 2);
 	}
 
 	if(params.debug_page == 1)
 	{
-		tl_col = imageLoad(debug_5_image, uvi * 2.0);
-		tr_col = imageLoad(debug_6_image, uvi * 2.0);
-		bl_col = imageLoad(debug_7_image, uvi * 2.0);
-		br_col = imageLoad(debug_8_image, uvi * 2.0);
+		tl_col = imageLoad(debug_5_image, uvi * 2);
+		tr_col = imageLoad(debug_6_image, uvi * 2);
+		bl_col = imageLoad(debug_7_image, uvi * 2);
+		br_col = imageLoad(debug_8_image, uvi * 2);
 	}
-#endif
 
-	if (params.debug_page == 1)
-	{
-		tl_col = vec4(0.1);
-	}
+	tl_col = vec4(0.5);
+#endif
 
 	ivec2 tl_uvi = uvi + ivec2(vec2(0.0, 0.0) * render_size);
 
