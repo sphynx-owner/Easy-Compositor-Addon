@@ -17,7 +17,9 @@ var past_color : StringName = "past_color"
 var freeze : bool = false
 
 func _init():
-	set_deferred("debug", true)
+	context = "MotionBlur"
+	
+	debug = true
 	
 	super()
 
@@ -60,13 +62,8 @@ func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSce
 	var color_image: RID = render_scene_buffers.get_color_layer(0)
 	var past_color_image: RID = render_scene_buffers.get_texture_slice(context, past_color, 0, 0, 1, 1)
 	
-	var debug_sampler_uniforms: Array[RDUniform]
-	
 	var x_groups: int = floori((render_size.x - 1) / 16 + 1)
 	var y_groups: int = floori((render_size.y - 1) / 16 + 1)
-	
-	for i in DEBUG_TEXTURE_NAMES.size():
-		debug_sampler_uniforms.append(get_sampler_uniform(get_texture(DEBUG_TEXTURE_NAMES[i], render_scene_buffers), i + 3))
 	
 	dispatch_stage(
 		overlay_stage, 
@@ -74,7 +71,7 @@ func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSce
 			get_image_uniform(past_color_image, 0),
 			get_image_uniform(color_image, 1),
 			get_sampler_uniform(color_image, 2)
-		] as Array[RDUniform] + debug_sampler_uniforms,
+		],
 		byte_array,
 		Vector3i(x_groups, y_groups, 1), 
 		"Debug Overlay", 

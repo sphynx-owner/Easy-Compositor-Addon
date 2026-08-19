@@ -190,12 +190,12 @@ func dispatch_stage(stage : ShaderStageResource, uniforms : Array[RDUniform], pu
 	rd.draw_command_begin_label(label + " " + str(view), color)
 	
 	var debug_uniforms : Array[RDUniform]
+	
 	var debug_uniform_set : RID
 	
 	if compiled_shader_stage.needs_debug():
-		for i in 8:
-			var debug_image_index = i + view * 8;
-			debug_uniforms.append(get_image_uniform(all_debug_images[debug_image_index], 10 + i))
+		for i in DEBUG_TEXTURE_NAMES.size():
+			debug_uniforms.append(get_image_uniform(all_debug_images[i], 10 + i))
 	
 	var tex_uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, 0, uniforms)
 	
@@ -203,7 +203,9 @@ func dispatch_stage(stage : ShaderStageResource, uniforms : Array[RDUniform], pu
 		debug_uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, 1, debug_uniforms)
 	
 	var compute_list = rd.compute_list_begin()
+	
 	rd.compute_list_bind_compute_pipeline(compute_list, compiled_shader_stage.pipeline)
+	
 	rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, 0)
 	
 	if compiled_shader_stage.needs_debug():
@@ -211,7 +213,7 @@ func dispatch_stage(stage : ShaderStageResource, uniforms : Array[RDUniform], pu
 	
 	if !push_constants.is_empty():
 		rd.compute_list_set_push_constant(compute_list, push_constants, push_constants.size())
-		
+	
 	rd.compute_list_dispatch(compute_list, dispatch_size.x, dispatch_size.y, dispatch_size.z)
 	
 	rd.compute_list_end()

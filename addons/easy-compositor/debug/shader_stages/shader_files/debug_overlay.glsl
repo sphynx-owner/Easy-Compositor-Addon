@@ -9,7 +9,7 @@
 layout(rgba16f, set = 0, binding = 0) uniform image2D past_color_image;
 layout(rgba16f, set = 0, binding = 1) uniform image2D output_color_image;
 layout(set = 0, binding = 2) uniform sampler2D color_sampler;
-// DEBUG_UNIFOsRMS
+// DEBUG_UNIFORMS
 
 layout(push_constant, std430) uniform Params 
 {
@@ -30,7 +30,7 @@ void main()
 {
 	ivec2 render_size = ivec2(textureSize(color_sampler, 0));
 	
-	if (params.draw_debug > 0 || params.freeze > 0)
+	if (params.draw_debug != 0 && params.freeze == 0)
 	{
 		render_size /= 2;
 	}
@@ -77,7 +77,7 @@ void main()
 		bl_col = imageLoad(debug_3_image, uvi * 2.0);
 		br_col = imageLoad(debug_4_image, uvi * 2.0);
 	}
-	
+
 	if(params.debug_page == 1)
 	{
 		tl_col = imageLoad(debug_5_image, uvi * 2.0);
@@ -86,6 +86,11 @@ void main()
 		br_col = imageLoad(debug_8_image, uvi * 2.0);
 	}
 #endif
+
+	if (params.debug_page == 1)
+	{
+		tl_col = vec4(0.1);
+	}
 
 	ivec2 tl_uvi = uvi + ivec2(vec2(0.0, 0.0) * render_size);
 
