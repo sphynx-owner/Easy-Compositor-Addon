@@ -60,9 +60,8 @@ func _enhanced_render_callback(render_size: Vector2i):
 			get_sampler_uniform(color_image, 2)
 		],
 		get_push_constants(float_push_constants, int_push_constant),
-		get_groups_count(Vector3i(render_size.x, render_size.y, 1), Vector3i(16, 16 ,1)), 
-		"Debug Overlay", 
-		0
+		get_groups_count(Vector3i(render_size.x, render_size.y, 1), DEFAULT_GROUP_SIZE), 
+		"Debug Overlay"
 	)
 	
 	rd.draw_command_end_label()

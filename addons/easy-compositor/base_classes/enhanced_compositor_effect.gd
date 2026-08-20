@@ -13,7 +13,13 @@ const DEFAULT_CONTEXT: String = "PostProcess"
 # duplicate logic per frame. There would need to be a better structure for the out-of-per-view
 # dispatches, and then some way to dispatch for each view. Perhaps accumulate dispatches and then
 # multiply them for each view... idk.
+# ---------------------------------------
 const PLACEHOLDER_VIEW_INDEX: int = 0
+
+const PLACEHOLDER_VIEW_COUNT: int = 1
+# ---------------------------------------
+
+const DEFAULT_GROUP_SIZE: Vector3 = Vector3(16, 16, 1)
 
 const DEFAULT_TEXTURE_UNIFORM_SET: int = 0
 
@@ -136,7 +142,8 @@ func _enhanced_render_callback(render_size: Vector2i):
 func ensure_texture(
 	texture_name: StringName,
 	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
-	render_size_multiplier: Vector2 = Vector2(1, 1)
+	render_size_multiplier: Vector2 = Vector2(1, 1),
+	usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
 ) -> bool:
 	assert(_current_render_scene_buffers, "current render scene buffers must be set")
 	
@@ -149,8 +156,6 @@ func ensure_texture(
 			_current_render_scene_buffers.clear_context(context)
 	
 	if !_current_render_scene_buffers.has_texture(context, texture_name):
-		var usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
-		
 		_current_render_scene_buffers.create_texture(
 			context,
 			texture_name,
@@ -158,9 +163,13 @@ func ensure_texture(
 			usage_bits,
 			RenderingDevice.TEXTURE_SAMPLES_1,
 			render_size,
-			1,
+			PLACEHOLDER_VIEW_COUNT,
 			1,
 			true,
+			# HACK @sphynx-skillcap: having it at false without knowing what this means.
+			# My worry is that this means textures are discarded as soon as possible, or
+			# maybe discardable manually, or something. I don't know yet.
+			# TODO @sphynx-skillcap: learn.
 			false
 		)
 		
