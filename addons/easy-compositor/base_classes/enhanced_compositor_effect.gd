@@ -99,7 +99,7 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 	if !_current_render_scene_buffers or !_current_render_scene_data:
 		return
 	
-	var render_size: Vector2i = _current_render_scene_data.get_internal_size()
+	var render_size: Vector2i = _current_render_scene_buffers.get_internal_size()
 	
 	if render_size.x == 0 or render_size.y == 0:
 		return
