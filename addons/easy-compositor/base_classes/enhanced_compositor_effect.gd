@@ -1,67 +1,74 @@
 @tool
 @abstract
-extends CompositorEffect
 class_name EnhancedCompositorEffect
+extends CompositorEffect
 ## This script contains and handles a lot of the boilerplate required for setting up a functioning compositor effcet
 ## It also establishes a debugging pattern that compute shaders can hook onto with pre processors
 ## Using this while not the most efficient is great for setting quick effects to experiment with.
 
 const DEBUG_SYMBOL: String = "// DEBUG_UNIFORMS"
 
-const DEBUG_SNIPPET: String =\
-"#define DEBUG
-layout(rgba16f, set = 1, binding = 10) uniform image2D debug_1_image;
-layout(rgba16f, set = 1, binding = 11) uniform image2D debug_2_image;
-layout(rgba16f, set = 1, binding = 12) uniform image2D debug_3_image;
-layout(rgba16f, set = 1, binding = 13) uniform image2D debug_4_image;
-layout(rgba16f, set = 1, binding = 14) uniform image2D debug_5_image;
-layout(rgba16f, set = 1, binding = 15) uniform image2D debug_6_image;
-layout(rgba16f, set = 1, binding = 16) uniform image2D debug_7_image;
-layout(rgba16f, set = 1, binding = 17) uniform image2D debug_8_image;"
+const DEBUG_UNIFORM_SET: int = 1
 
-var DEBUG_TEXTURE_NAMES: Array[StringName] = [
-	&"debug_1",
-	&"debug_2",
-	&"debug_3",
-	&"debug_4",
-	&"debug_5",
-	&"debug_6",
-	&"debug_7",
-	&"debug_8"
-]
+const DEBUG_BINDING_START_OFFSET: int = 10
+
+const DEBUG_TEXTURE_COUNT: int = 8
+
+static var DEBUG_SNIPPET: String
+
+static var DEBUG_TEXTURE_NAMES: Array[StringName]
 
 ## Enabling this would include the DEBUG pre-processor in 
 ## the compute shader before compiling and creating the pipeline,
 ## As well as adding debug image uniforms and binding them automatically.
-## This makes it easier to add behavior that is specific for debugging 
-## like printing images to a debug screen that can be toggled with Z
-## and cycled through with C, as well as freeze the screen with X.
-## requires the DebugCompositorEffect at the end of the compositor_effects array to be usable
-@export var debug : bool = false:
+@export var debug: bool = false:
 	set(value):
 		debug = value
 		
-		RenderingServer.call_on_render_thread(_update_debug)
+		RenderingServer.call_on_render_thread(_update_debug_enabled)
 
 var rd: RenderingDevice
 
 var linear_sampler: RID
 
-var nearest_sampler : RID
+var nearest_sampler: RID
 
 var context: StringName = "PostProcess"
 
 var _all_shader_stages : Dictionary[RDShaderFile, CompiledShaderStage]
 
-var all_debug_images : Array[RID]
+var _current_render_scene_buffers: RenderSceneBuffersRD
+
+var _current_render_scene_data: RenderSceneDataRD
+
+var all_debug_images: Array[RID]
 
 #region Virtual Methods
+
+static func _static_init() -> void:
+	var new_debug_snippet: String = "#define DEBUG\n"
+	
+	var new_debug_texture_names: Array[StringName]
+	
+	for i in DEBUG_TEXTURE_COUNT:
+		new_debug_snippet += "layout(rgba16f, set = %s, binding = %s) uniform image2D debug_%s_image;\n" % [
+			DEBUG_UNIFORM_SET,
+			DEBUG_BINDING_START_OFFSET + i,
+			i + 1
+		]
+		
+		new_debug_texture_names.push_back(StringName("debug_%s" % [i + 1]))
+	
+	DEBUG_SNIPPET = new_debug_snippet
+	
+	DEBUG_TEXTURE_NAMES = new_debug_texture_names
+
 
 func _init():
 	RenderingServer.call_on_render_thread(_initialize_compute)
 
 
-func _notification(what):
+func _notification(what: int):
 	if what == NOTIFICATION_PREDELETE:
 		if !rd:
 			return
@@ -73,51 +80,74 @@ func _notification(what):
 			rd.free_rid(nearest_sampler)
 
 
-func _render_callback(p_effect_callback_type, p_render_data):
+func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 	if !rd:
 		return
 	
-	var render_scene_buffers: RenderSceneBuffersRD = p_render_data.get_render_scene_buffers()
-	var render_scene_data: RenderSceneDataRD = p_render_data.get_render_scene_data()
+	_current_render_scene_buffers = p_render_data.get_render_scene_buffers()
+	_current_render_scene_data = p_render_data.get_render_scene_data()
 	
-	if !render_scene_buffers or !render_scene_data:
+	if !_current_render_scene_buffers or !_current_render_scene_data:
 		return
 	
-	var render_size: Vector2i = render_scene_buffers.get_internal_size()
+	var render_size: Vector2i = _current_render_scene_data.get_internal_size()
 	
 	if render_size.x == 0 or render_size.y == 0:
 		return
 	
 	if debug:
 		for debug_texture in DEBUG_TEXTURE_NAMES:
-			ensure_texture(debug_texture, render_scene_buffers)
+			ensure_texture(debug_texture, _current_render_scene_buffers)
 		
 		for debug_texture in DEBUG_TEXTURE_NAMES:
-			all_debug_images.append(get_texture(debug_texture, render_scene_buffers))
+			all_debug_images.append(get_texture(debug_texture, _current_render_scene_buffers))
 	
-	_render_callback_2(render_size, render_scene_buffers, render_scene_data)
+	_enhanced_render_callback(render_size, _current_render_scene_buffers, _current_render_scene_data)
 	
 	all_debug_images.clear()
 
 
-func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSceneBuffersRD, render_scene_data : RenderSceneDataRD):
+func _enhanced_render_callback(
+	render_size: Vector2i,
+	render_scene_buffers: RenderSceneBuffersRD,
+	render_scene_data: RenderSceneDataRD
+):
 	pass
 
 #endregion
 
 #region Public Methods
 
-func ensure_texture(texture_name : StringName, render_scene_buffers : RenderSceneBuffersRD, texture_format : RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT, render_size_multiplier : Vector2 = Vector2(1, 1)) -> bool:
-	var render_size : Vector2i = Vector2(render_scene_buffers.get_internal_size()) * render_size_multiplier
+func ensure_texture(
+	texture_name: StringName,
+	render_scene_buffers: RenderSceneBuffersRD,
+	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
+	render_size_multiplier: Vector2 = Vector2(1, 1)
+) -> bool:
+	var render_size: Vector2i = Vector2(render_scene_buffers.get_internal_size()) * render_size_multiplier
 	
 	if render_scene_buffers.has_texture(context, texture_name):
 		var tf: RDTextureFormat = render_scene_buffers.get_texture_format(context, texture_name)
+		
 		if tf.width != render_size.x or tf.height != render_size.y:
 			render_scene_buffers.clear_context(context)
 	
 	if !render_scene_buffers.has_texture(context, texture_name):
 		var usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
-		render_scene_buffers.create_texture(context, texture_name, texture_format, usage_bits, RenderingDevice.TEXTURE_SAMPLES_1, render_size, 1, 1, true, false)
+		
+		render_scene_buffers.create_texture(
+			context,
+			texture_name,
+			texture_format,
+			usage_bits,
+			RenderingDevice.TEXTURE_SAMPLES_1,
+			render_size,
+			1,
+			1,
+			true,
+			false
+		)
+		
 		return true
 	
 	return false
@@ -165,9 +195,6 @@ func get_push_constants(
 	
 	ret.append_array(floats.to_byte_array())
 	
-	if ret.size() == 48:
-		pass
-	
 	if ints.size() > 0 or force_four_minimum_entries:
 		@warning_ignore("integer_division")
 		ints.resize((((ints.size() - 1) / 4 + 1) * 4))
@@ -177,7 +204,23 @@ func get_push_constants(
 	return ret
 
 
-func dispatch_stage(stage : RDShaderFile, uniforms : Array[RDUniform], push_constants : PackedByteArray, dispatch_size : Vector3i, label : String = "DefaultLabel", view : int = 0, color : Color = Color(1, 1, 1, 1)):
+func get_groups_count(render_size: Vector3i, group_size: Vector3i) -> Vector3i:
+	return Vector3i(
+		floori((render_size.x - 1) / group_size.x + 1),
+		floori((render_size.y - 1) / group_size.y + 1),
+		floori((render_size.z - 1) / group_size.z + 1)
+	)
+
+
+func dispatch_stage(
+	stage: RDShaderFile,
+	uniforms: Array[RDUniform],
+	push_constants: PackedByteArray,
+	dispatch_size: Vector3i,
+	label: String = "DefaultLabel",
+	view: int = 0,
+	color: Color = Color(1, 1, 1, 1)
+) -> bool:
 	if !_all_shader_stages.has(stage):
 		_all_shader_stages[stage] = CompiledShaderStage.new(rd, stage, debug)
 	
@@ -185,15 +228,16 @@ func dispatch_stage(stage : RDShaderFile, uniforms : Array[RDUniform], push_cons
 	
 	if !compiled_shader_stage.is_compiled():
 		push_error("cannot dispatch invalid shader stage")
+		return false
 	
 	rd.draw_command_begin_label(label + " " + str(view), color)
 	
-	var debug_uniforms : Array[RDUniform]
+	var debug_uniforms: Array[RDUniform]
 	
-	var debug_uniform_set : RID
+	var debug_uniform_set: RID
 	
 	if compiled_shader_stage.needs_debug():
-		for i in DEBUG_TEXTURE_NAMES.size():
+		for i in DEBUG_TEXTURE_COUNT:
 			debug_uniforms.append(get_image_uniform(all_debug_images[i], 10 + i))
 	
 	var tex_uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, 0, uniforms)
@@ -218,6 +262,8 @@ func dispatch_stage(stage : RDShaderFile, uniforms : Array[RDUniform], push_cons
 	rd.compute_list_end()
 	
 	rd.draw_command_end_label()
+	
+	return true
 
 #endregion
 
@@ -247,9 +293,14 @@ func _initialize_compute():
 	nearest_sampler = rd.sampler_create(sampler_state)
 
 
-func _update_debug() -> void:
+func _update_debug_enabled() -> void:
 	for compiled_shader_stage: CompiledShaderStage in _all_shader_stages.values():
 		compiled_shader_stage.debug = debug
+
+
+func _recompile_all_shaders() -> void:
+	for compiled_shader_stage: CompiledShaderStage in _all_shader_stages.values():
+		compiled_shader_stage.try_compile()
 
 #endregion
 
@@ -348,8 +399,8 @@ class CompiledShaderStage:
 			
 			file_text = file_text.replace("#[compute]", "")
 			
-			if file_text.contains(DEBUG_SYMBOL):
-				file_text = file_text.replace(DEBUG_SYMBOL, DEBUG_SNIPPET)
+			if file_text.contains(EnhancedCompositorEffect.DEBUG_SYMBOL):
+				file_text = file_text.replace(EnhancedCompositorEffect.DEBUG_SYMBOL, EnhancedCompositorEffect.DEBUG_SNIPPET)
 				
 				_needs_debug = true
 			

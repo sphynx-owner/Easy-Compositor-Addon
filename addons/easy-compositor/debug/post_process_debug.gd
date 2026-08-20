@@ -1,6 +1,6 @@
 @tool
-extends EnhancedCompositorEffect
 class_name DebugCompositorEffect
+extends EnhancedCompositorEffect
 
 @export_storage var overlay_stage : RDShaderFile = preload("res://addons/easy-compositor/debug/shader_stages/debug_overlay.glsl")
 
@@ -26,22 +26,9 @@ func _init():
 func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSceneBuffersRD, render_scene_data : RenderSceneDataRD):
 	ensure_texture(past_color, render_scene_buffers)
 	
-	for texture in DEBUG_TEXTURE_NAMES:
-		ensure_texture(texture, render_scene_buffers)
-	
 	rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
 	
-	#if !Engine.is_editor_hint():
-		#if Input.is_action_just_pressed("freeze"):
-			#freeze = !freeze
-		#
-		#if Input.is_action_just_pressed("Z"):
-			#draw_debug = !draw_debug
-		#
-		#if Input.is_action_just_pressed("C"):
-			#debug_page = 1 if debug_page == 0 else 0
-	
-	var push_constant: PackedFloat32Array = [
+	var float_push_constants: PackedFloat32Array = [
 		0,
 		0,
 		0, 
@@ -55,15 +42,8 @@ func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSce
 		0
 	]
 	
-	var byte_array: PackedByteArray = push_constant.to_byte_array()
-	
-	byte_array.append_array(int_push_constant.to_byte_array())
-	
 	var color_image: RID = render_scene_buffers.get_color_layer(0)
-	var past_color_image: RID = render_scene_buffers.get_texture_slice(context, past_color, 0, 0, 1, 1)
-	
-	var x_groups: int = floori((render_size.x - 1) / 16 + 1)
-	var y_groups: int = floori((render_size.y - 1) / 16 + 1)
+	var past_color_image: RID = get_texture(past_color, render_scene_buffers)
 	
 	dispatch_stage(
 		overlay_stage, 
@@ -72,8 +52,8 @@ func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSce
 			get_image_uniform(color_image, 1),
 			get_sampler_uniform(color_image, 2)
 		],
-		byte_array,
-		Vector3i(x_groups, y_groups, 1), 
+		get_push_constants(float_push_constants, int_push_constant),
+		get_groups_count(Vector3i(render_size.x, render_size.y, 1), Vector3i(16, 16 ,1)), 
 		"Debug Overlay", 
 		0
 	)
