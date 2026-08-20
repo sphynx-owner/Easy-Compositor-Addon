@@ -26,7 +26,7 @@ func _init():
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "debug":
-		property.usage &= !PROPERTY_USAGE_EDITOR
+		property.usage &= ~PROPERTY_USAGE_EDITOR
 
 
 func _enhanced_render_callback(render_size: Vector2i):
