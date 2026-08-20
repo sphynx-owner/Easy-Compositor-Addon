@@ -6,6 +6,13 @@ extends CompositorEffect
 ## It also establishes a debugging pattern that compute shaders can hook onto with pre processors
 ## Using this while not the most efficient is great for setting quick effects to experiment with.
 
+# TODO @sphynx-owner: figure out if I should add support for multiple views. It's not as simple
+# as calling multiple render callback virtuals for each view, since that could cause unnecessary
+# duplicate logic per frame. There would need to be a better structure for the out-of-per-view
+# dispatches, and then some way to dispatch for each view. Perhaps accumulate dispatches and then
+# multiply them for each view... Idk.
+const PLACEHOLDER_VIEW_INDEX: int = 0
+
 const DEFAULT_TEXTURE_UNIFORM_SET: int = 0
 
 const DEBUG_SYMBOL: String = "// DEBUG_UNIFORMS"
@@ -99,21 +106,16 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 	
 	if debug:
 		for debug_texture in DEBUG_TEXTURE_NAMES:
-			ensure_texture(debug_texture, _current_render_scene_buffers)
-		
-		for debug_texture in DEBUG_TEXTURE_NAMES:
-			all_debug_images.append(get_texture(debug_texture, _current_render_scene_buffers))
+			ensure_texture(debug_texture)
+			
+			all_debug_images.append(get_texture(debug_texture))
 	
-	_enhanced_render_callback(render_size, _current_render_scene_buffers, _current_render_scene_data)
+	_enhanced_render_callback(render_size)
 	
 	all_debug_images.clear()
 
 
-func _enhanced_render_callback(
-	render_size: Vector2i,
-	render_scene_buffers: RenderSceneBuffersRD,
-	render_scene_data: RenderSceneDataRD
-):
+func _enhanced_render_callback(render_size: Vector2i):
 	pass
 
 #endregion
@@ -122,22 +124,23 @@ func _enhanced_render_callback(
 
 func ensure_texture(
 	texture_name: StringName,
-	render_scene_buffers: RenderSceneBuffersRD,
 	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
 	render_size_multiplier: Vector2 = Vector2(1, 1)
 ) -> bool:
-	var render_size: Vector2i = Vector2(render_scene_buffers.get_internal_size()) * render_size_multiplier
+	assert(_current_render_scene_buffers, "current render scene buffers must be set")
 	
-	if render_scene_buffers.has_texture(context, texture_name):
-		var tf: RDTextureFormat = render_scene_buffers.get_texture_format(context, texture_name)
+	var render_size: Vector2i = Vector2(_current_render_scene_buffers.get_internal_size()) * render_size_multiplier
+	
+	if _current_render_scene_buffers.has_texture(context, texture_name):
+		var tf: RDTextureFormat = _current_render_scene_buffers.get_texture_format(context, texture_name)
 		
 		if tf.width != render_size.x or tf.height != render_size.y:
-			render_scene_buffers.clear_context(context)
+			_current_render_scene_buffers.clear_context(context)
 	
-	if !render_scene_buffers.has_texture(context, texture_name):
+	if !_current_render_scene_buffers.has_texture(context, texture_name):
 		var usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
 		
-		render_scene_buffers.create_texture(
+		_current_render_scene_buffers.create_texture(
 			context,
 			texture_name,
 			texture_format,
@@ -155,8 +158,34 @@ func ensure_texture(
 	return false
 
 
-func get_texture(texture_name: StringName, render_scene_buffers: RenderSceneBuffersRD) -> RID:
-	return render_scene_buffers.get_texture_slice(context, texture_name, 0, 0, 1, 1)
+func get_texture(texture_name: StringName) -> RID:
+	assert(_current_render_scene_buffers, "current render scene buffers must be set")
+	
+	return _current_render_scene_buffers.get_texture_slice(context, texture_name, PLACEHOLDER_VIEW_INDEX, 0, 1, 1)
+
+
+func get_depth_texture() -> RID:
+	assert(_current_render_scene_buffers, "current render scene buffers must be set")
+	
+	return _current_render_scene_buffers.get_depth_layer(PLACEHOLDER_VIEW_INDEX)
+
+
+func get_color_texture() -> RID:
+	assert(_current_render_scene_buffers, "current render scene buffers must be set")
+	
+	return _current_render_scene_buffers.get_color_layer(PLACEHOLDER_VIEW_INDEX)
+
+
+func get_velocity_texture() -> RID:
+	assert(_current_render_scene_buffers, "current render scene buffers must be set")
+	
+	return _current_render_scene_buffers.get_velocity_layer(PLACEHOLDER_VIEW_INDEX)
+
+
+func get_scene_uniform_data_buffer() -> RID:
+	assert(_current_render_scene_data, "current render scene buffers must be set")
+	
+	return _current_render_scene_data.get_uniform_buffer()
 
 
 func get_image_uniform(image: RID, binding: int) -> RDUniform:
@@ -226,7 +255,6 @@ func dispatch_stage(
 	push_constants: PackedByteArray,
 	dispatch_size: Vector3i,
 	label: String = "DefaultLabel",
-	view: int = 0,
 	color: Color = Color(1, 1, 1, 1)
 ) -> bool:
 	if !_all_shader_stages.has(stage):
@@ -238,7 +266,7 @@ func dispatch_stage(
 		push_error("cannot dispatch invalid shader stage")
 		return false
 	
-	rd.draw_command_begin_label(label + " " + str(view), color)
+	rd.draw_command_begin_label(label + " " + str(PLACEHOLDER_VIEW_INDEX), color)
 	
 	var tex_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEFAULT_TEXTURE_UNIFORM_SET, uniforms)
 	
@@ -397,7 +425,7 @@ class CompiledShaderStage:
 				push_error("shader file does not have a resource path, cannot generate debug version")
 				return false
 			
-			var file = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
+			var file: FileAccess = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
 			
 			var file_text: String = file.get_as_text()
 			

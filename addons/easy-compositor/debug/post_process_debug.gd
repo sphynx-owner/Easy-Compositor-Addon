@@ -24,8 +24,6 @@ func _init():
 	super()
 
 func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSceneBuffersRD, render_scene_data : RenderSceneDataRD):
-	ensure_texture(past_color, render_scene_buffers)
-	
 	rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
 	
 	var float_push_constants: PackedFloat32Array = [
@@ -43,7 +41,10 @@ func _render_callback_2(render_size : Vector2i, render_scene_buffers : RenderSce
 	]
 	
 	var color_image: RID = render_scene_buffers.get_color_layer(0)
-	var past_color_image: RID = get_texture(past_color, render_scene_buffers)
+	
+	ensure_texture(past_color)
+	
+	var past_color_image: RID = get_texture(past_color)
 	
 	dispatch_stage(
 		overlay_stage, 
