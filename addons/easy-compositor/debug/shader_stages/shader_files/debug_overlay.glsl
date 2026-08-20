@@ -61,7 +61,7 @@ void main()
 		return;
 	}
 
-	vec4 tl_col = vec4(1.0);
+	vec4 tl_col;
 
 	vec4 tr_col;
 
@@ -85,8 +85,6 @@ void main()
 		bl_col = imageLoad(debug_7_image, uvi * 2);
 		br_col = imageLoad(debug_8_image, uvi * 2);
 	}
-
-	tl_col = vec4(0.5);
 #endif
 
 	ivec2 tl_uvi = uvi + ivec2(vec2(0.0, 0.0) * render_size);

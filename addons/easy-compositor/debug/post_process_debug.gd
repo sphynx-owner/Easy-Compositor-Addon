@@ -14,7 +14,7 @@ class_name DebugCompositorEffect
 
 var past_color : StringName = "past_color"
 
-var freeze : bool = false
+@export var freeze : bool = false
 
 func _init():
 	context = "MotionBlur"
