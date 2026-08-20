@@ -6,6 +6,8 @@ extends CompositorEffect
 ## It also establishes a debugging pattern that compute shaders can hook onto with pre processors
 ## Using this while not the most efficient is great for setting quick effects to experiment with.
 
+const DEFAULT_TEXTURE_UNIFORM_SET: int = 0
+
 const DEBUG_SYMBOL: String = "// DEBUG_UNIFORMS"
 
 const DEBUG_UNIFORM_SET: int = 1
@@ -153,32 +155,38 @@ func ensure_texture(
 	return false
 
 
-func get_texture(texture_name: StringName, render_scene_buffers : RenderSceneBuffersRD) -> RID:
+func get_texture(texture_name: StringName, render_scene_buffers: RenderSceneBuffersRD) -> RID:
 	return render_scene_buffers.get_texture_slice(context, texture_name, 0, 0, 1, 1)
 
 
 func get_image_uniform(image: RID, binding: int) -> RDUniform:
-	var uniform: RDUniform = RDUniform.new()
+	var uniform := RDUniform.new()
+	
 	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_IMAGE
 	uniform.binding = binding
 	uniform.add_id(image)
+	
 	return uniform
 
 
-func get_sampler_uniform(image: RID, binding: int, linear : bool = true) -> RDUniform:
-	var uniform: RDUniform = RDUniform.new()
+func get_sampler_uniform(image: RID, binding: int, linear: bool = true) -> RDUniform:
+	var uniform := RDUniform.new()
+	
 	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
 	uniform.binding = binding
 	uniform.add_id(linear_sampler if linear else nearest_sampler)
 	uniform.add_id(image)
+	
 	return uniform
 
 
 func get_buffer_uniform(buffer: RID, binding: int) -> RDUniform:
 	var uniform := RDUniform.new()
+	
 	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_UNIFORM_BUFFER
 	uniform.binding = binding
 	uniform.add_id(buffer)
+	
 	return uniform
 
 
@@ -232,27 +240,23 @@ func dispatch_stage(
 	
 	rd.draw_command_begin_label(label + " " + str(view), color)
 	
-	var debug_uniforms: Array[RDUniform]
-	
-	var debug_uniform_set: RID
-	
-	if compiled_shader_stage.needs_debug():
-		for i in DEBUG_TEXTURE_COUNT:
-			debug_uniforms.append(get_image_uniform(all_debug_images[i], 10 + i))
-	
-	var tex_uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, 0, uniforms)
-	
-	if compiled_shader_stage.needs_debug():
-		debug_uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, 1, debug_uniforms)
+	var tex_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEFAULT_TEXTURE_UNIFORM_SET, uniforms)
 	
 	var compute_list = rd.compute_list_begin()
 	
 	rd.compute_list_bind_compute_pipeline(compute_list, compiled_shader_stage.pipeline)
 	
-	rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, 0)
+	rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, DEFAULT_TEXTURE_UNIFORM_SET)
 	
 	if compiled_shader_stage.needs_debug():
-		rd.compute_list_bind_uniform_set(compute_list, debug_uniform_set, 1)
+		var debug_uniforms: Array[RDUniform]
+		
+		for i in DEBUG_TEXTURE_COUNT:
+			debug_uniforms.append(get_image_uniform(all_debug_images[i], DEBUG_BINDING_START_OFFSET + i))
+		
+		var debug_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEBUG_UNIFORM_SET, debug_uniforms)
+		
+		rd.compute_list_bind_uniform_set(compute_list, debug_uniform_set, DEBUG_UNIFORM_SET)
 	
 	if !push_constants.is_empty():
 		rd.compute_list_set_push_constant(compute_list, push_constants, push_constants.size())
@@ -384,7 +388,7 @@ class CompiledShaderStage:
 	func try_compile() -> bool:
 		_free_rids()
 		
-		var shader_spirv : RDShaderSPIRV
+		var shader_spirv: RDShaderSPIRV
 		
 		_needs_debug = false
 		
@@ -404,7 +408,7 @@ class CompiledShaderStage:
 				
 				_needs_debug = true
 			
-			var shader_source : RDShaderSource = RDShaderSource.new()
+			var shader_source: RDShaderSource = RDShaderSource.new()
 			
 			shader_source.set_stage_source(RenderingDevice.SHADER_STAGE_COMPUTE, file_text)
 			
