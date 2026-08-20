@@ -51,7 +51,7 @@ var nearest_sampler : RID
 
 var context: StringName = "PostProcess"
 
-var _all_shader_stages : Dictionary[ShaderStageResource, CompiledShaderStage]
+var _all_shader_stages : Dictionary[RDShaderFile, CompiledShaderStage]
 
 var all_debug_images : Array[RID]
 
@@ -177,7 +177,7 @@ func get_push_constants(
 	return ret
 
 
-func dispatch_stage(stage : ShaderStageResource, uniforms : Array[RDUniform], push_constants : PackedByteArray, dispatch_size : Vector3i, label : String = "DefaultLabel", view : int = 0, color : Color = Color(1, 1, 1, 1)):
+func dispatch_stage(stage : RDShaderFile, uniforms : Array[RDUniform], push_constants : PackedByteArray, dispatch_size : Vector3i, label : String = "DefaultLabel", view : int = 0, color : Color = Color(1, 1, 1, 1)):
 	if !_all_shader_stages.has(stage):
 		_all_shader_stages[stage] = CompiledShaderStage.new(rd, stage, debug)
 	
@@ -257,7 +257,7 @@ func _update_debug() -> void:
 class CompiledShaderStage:
 	var rd: RenderingDevice
 	
-	var shader_stage: ShaderStageResource:
+	var shader_stage: RDShaderFile:
 		set(value):
 			if shader_stage == value:
 				return
@@ -292,7 +292,7 @@ class CompiledShaderStage:
 	var pipeline: RID
 	
 	
-	func _init(p_rd: RenderingDevice, p_shader_stage: ShaderStageResource, p_debug: bool = false) -> void:
+	func _init(p_rd: RenderingDevice, p_shader_stage: RDShaderFile, p_debug: bool = false) -> void:
 		_init_gate = true
 		
 		rd = p_rd
@@ -338,11 +338,11 @@ class CompiledShaderStage:
 		_needs_debug = false
 		
 		if debug:
-			if !shader_stage.shader_file.resource_path:
+			if !shader_stage.resource_path:
 				push_error("shader file does not have a resource path, cannot generate debug version")
 				return false
 			
-			var file = FileAccess.open(shader_stage.shader_file.resource_path, FileAccess.READ)
+			var file = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
 			
 			var file_text: String = file.get_as_text()
 			
@@ -360,7 +360,7 @@ class CompiledShaderStage:
 			shader_spirv = rd.shader_compile_spirv_from_source(shader_source, false)
 			
 		else:
-			shader_spirv = shader_stage.shader_file.get_spirv()
+			shader_spirv = shader_stage.get_spirv()
 		
 		var error: String = shader_spirv.get_stage_compile_error(RenderingDevice.SHADER_STAGE_COMPUTE)
 		

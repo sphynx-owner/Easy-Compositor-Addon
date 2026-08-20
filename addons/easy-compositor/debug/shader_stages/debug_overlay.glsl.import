@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dyxn6g5gvoge7"
+path="res://.godot/imported/debug_overlay.glsl-99fae4ba7216cdba389afec4b2a4646a.res"
+
+[deps]
+
+source_file="res://addons/easy-compositor/debug/shader_stages/debug_overlay.glsl"
+dest_files=["res://.godot/imported/debug_overlay.glsl-99fae4ba7216cdba389afec4b2a4646a.res"]
+
+[params]
+

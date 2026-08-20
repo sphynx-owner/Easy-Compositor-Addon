@@ -2,7 +2,7 @@
 extends EnhancedCompositorEffect
 class_name DebugCompositorEffect
 
-@export_storage var overlay_stage : ShaderStageResource = preload("res://addons/easy-compositor/debug/shader_stages/debug_overlay_shader_stage.tres")
+@export_storage var overlay_stage : RDShaderFile = preload("res://addons/easy-compositor/debug/shader_stages/debug_overlay.glsl")
 
 ## wether to display debug views for velocity and depth 
 ## buffers
