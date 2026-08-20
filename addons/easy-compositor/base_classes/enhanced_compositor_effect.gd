@@ -6,14 +6,18 @@ extends CompositorEffect
 ## It also establishes a debugging pattern that compute shaders can hook onto with pre processors
 ## Using this while not the most efficient is great for setting quick effects to experiment with.
 
+const DEFAULT_CONTEXT: String = "PostProcess"
+
 # TODO @sphynx-owner: figure out if I should add support for multiple views. It's not as simple
 # as calling multiple render callback virtuals for each view, since that could cause unnecessary
 # duplicate logic per frame. There would need to be a better structure for the out-of-per-view
 # dispatches, and then some way to dispatch for each view. Perhaps accumulate dispatches and then
-# multiply them for each view... Idk.
+# multiply them for each view... idk.
 const PLACEHOLDER_VIEW_INDEX: int = 0
 
 const DEFAULT_TEXTURE_UNIFORM_SET: int = 0
+
+const DEBUG_CONTEXT: String = "Debug"
 
 const DEBUG_SYMBOL: String = "// DEBUG_UNIFORMS"
 
@@ -42,7 +46,7 @@ var linear_sampler: RID
 
 var nearest_sampler: RID
 
-var context: StringName = "PostProcess"
+var context: StringName = DEFAULT_CONTEXT
 
 var _all_shader_stages : Dictionary[RDShaderFile, CompiledShaderStage]
 
@@ -105,10 +109,17 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 		return
 	
 	if debug:
+		# HACK @sphynx-skillcap: overriding the context momentarily for the generation of all
+		# debug textures. I don't know for certain if this is necessary but it feels right.
+		var temp_context: String = context
+		context = DEBUG_CONTEXT
+		
 		for debug_texture in DEBUG_TEXTURE_NAMES:
 			ensure_texture(debug_texture)
 			
 			all_debug_images.append(get_texture(debug_texture))
+		
+		context = temp_context
 	
 	_enhanced_render_callback(render_size)
 	

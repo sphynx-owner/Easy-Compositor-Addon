@@ -17,11 +17,17 @@ var past_color : StringName = "past_color"
 @export var freeze : bool = false
 
 func _init():
-	context = "MotionBlur"
+	context = DEBUG_CONTEXT
 	
 	debug = true
 	
 	super()
+
+
+func _validate_property(property: Dictionary) -> void:
+	if property.name == "debug":
+		property.usage &= !PROPERTY_USAGE_EDITOR
+
 
 func _enhanced_render_callback(render_size: Vector2i):
 	rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
