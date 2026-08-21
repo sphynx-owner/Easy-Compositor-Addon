@@ -115,7 +115,7 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 		return
 	
 	if debug:
-		# HACK @sphynx-skillcap: overriding the context momentarily for the generation of all
+		# HACK @sphynx-owner: overriding the context momentarily for the generation of all
 		# debug textures. I don't know for certain if this is necessary but it feels right.
 		var temp_context: String = context
 		context = DEBUG_CONTEXT
@@ -166,10 +166,10 @@ func ensure_texture(
 			PLACEHOLDER_VIEW_COUNT,
 			1,
 			true,
-			# HACK @sphynx-skillcap: having it at false without knowing what this means.
+			# HACK @sphynx-owner: having it at false without knowing what this means.
 			# My worry is that this means textures are discarded as soon as possible, or
 			# maybe discardable manually, or something. I don't know yet.
-			# TODO @sphynx-skillcap: learn.
+			# TODO @sphynx-owner: learn.
 			false
 		)
 		
