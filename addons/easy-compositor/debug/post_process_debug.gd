@@ -20,8 +20,6 @@ func _init():
 	context = DEBUG_CONTEXT
 	
 	debug = true
-	
-	super()
 
 
 func _validate_property(property: Dictionary) -> void:
@@ -30,7 +28,7 @@ func _validate_property(property: Dictionary) -> void:
 
 
 func _enhanced_render_callback(render_size: Vector2i):
-	rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
+	rd_instance.rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
 	
 	var float_push_constants: PackedFloat32Array = [
 		0,
@@ -64,4 +62,4 @@ func _enhanced_render_callback(render_size: Vector2i):
 		"Debug Overlay"
 	)
 	
-	rd.draw_command_end_label()
+	rd_instance.rd.draw_command_end_label()

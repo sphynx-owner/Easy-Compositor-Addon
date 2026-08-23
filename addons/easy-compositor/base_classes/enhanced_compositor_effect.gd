@@ -46,11 +46,17 @@ static var DEBUG_TEXTURE_NAMES: Array[StringName]
 		
 		RenderingServer.call_on_render_thread(_update_debug_enabled)
 
-var rd: RenderingDevice
-
-var linear_sampler: RID
-
-var nearest_sampler: RID
+# WARNING @sphynx-owner: the purpose of the rendering device instance system is to
+# avoid creating redundant samplers for the same rendreing device. This system is
+# has limitations, and would break if the same compositor effect is used across two
+# scenes that use different rendering devices.
+# NOTE @sphynx-owner: the reason I created the rendering device instance system is to
+# avoid redundant creation of things like samplers, which do not need to be recreated
+# more than once per rendering device. The real issue that drove this was that
+# the editor holds on to resources even after they are dereferenced from code. 
+# This caused samplers to clog the heap as they were created anew for every 
+# compositor effect when doing stuff with them in the editor repeatedly.
+var rd_instance: RenderingDeviceInstance = RenderingDeviceInstance.get_instance()
 
 var context: StringName = DEFAULT_CONTEXT
 
@@ -83,24 +89,8 @@ static func _static_init() -> void:
 	DEBUG_TEXTURE_NAMES = new_debug_texture_names
 
 
-func _init():
-	RenderingServer.call_on_render_thread(_initialize_compute)
-
-
-func _notification(what: int):
-	if what == NOTIFICATION_PREDELETE:
-		if !rd:
-			return
-		
-		if linear_sampler.is_valid():
-			rd.free_rid(linear_sampler)
-		
-		if nearest_sampler.is_valid():
-			rd.free_rid(nearest_sampler)
-
-
 func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
-	if !rd:
+	if !rd_instance.is_valid():
 		return
 	
 	_current_render_scene_buffers = p_render_data.get_render_scene_buffers()
@@ -223,7 +213,7 @@ func get_sampler_uniform(image: RID, binding: int, linear: bool = true) -> RDUni
 	
 	uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_SAMPLER_WITH_TEXTURE
 	uniform.binding = binding
-	uniform.add_id(linear_sampler if linear else nearest_sampler)
+	uniform.add_id(rd_instance.linear_sampler if linear else rd_instance.nearest_sampler)
 	uniform.add_id(image)
 	
 	return uniform
@@ -278,7 +268,7 @@ func dispatch_stage(
 	color: Color = Color(1, 1, 1, 1)
 ) -> bool:
 	if !_all_shader_stages.has(stage):
-		_all_shader_stages[stage] = CompiledShaderStage.new(rd, stage, debug)
+		_all_shader_stages[stage] = CompiledShaderStage.new(rd_instance.rd, stage, debug)
 	
 	var compiled_shader_stage: CompiledShaderStage = _all_shader_stages[stage]
 	
@@ -286,15 +276,15 @@ func dispatch_stage(
 		push_error("cannot dispatch invalid shader stage")
 		return false
 	
-	rd.draw_command_begin_label(label + " " + str(PLACEHOLDER_VIEW_INDEX), color)
+	rd_instance.rd.draw_command_begin_label(label + " " + str(PLACEHOLDER_VIEW_INDEX), color)
 	
 	var tex_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEFAULT_TEXTURE_UNIFORM_SET, uniforms)
 	
-	var compute_list = rd.compute_list_begin()
+	var compute_list = rd_instance.rd.compute_list_begin()
 	
-	rd.compute_list_bind_compute_pipeline(compute_list, compiled_shader_stage.pipeline)
+	rd_instance.rd.compute_list_bind_compute_pipeline(compute_list, compiled_shader_stage.pipeline)
 	
-	rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, DEFAULT_TEXTURE_UNIFORM_SET)
+	rd_instance.rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, DEFAULT_TEXTURE_UNIFORM_SET)
 	
 	if compiled_shader_stage.needs_debug():
 		var debug_uniforms: Array[RDUniform]
@@ -304,46 +294,22 @@ func dispatch_stage(
 		
 		var debug_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEBUG_UNIFORM_SET, debug_uniforms)
 		
-		rd.compute_list_bind_uniform_set(compute_list, debug_uniform_set, DEBUG_UNIFORM_SET)
+		rd_instance.rd.compute_list_bind_uniform_set(compute_list, debug_uniform_set, DEBUG_UNIFORM_SET)
 	
 	if !push_constants.is_empty():
-		rd.compute_list_set_push_constant(compute_list, push_constants, push_constants.size())
+		rd_instance.rd.compute_list_set_push_constant(compute_list, push_constants, push_constants.size())
 	
-	rd.compute_list_dispatch(compute_list, dispatch_size.x, dispatch_size.y, dispatch_size.z)
+	rd_instance.rd.compute_list_dispatch(compute_list, dispatch_size.x, dispatch_size.y, dispatch_size.z)
 	
-	rd.compute_list_end()
+	rd_instance.rd.compute_list_end()
 	
-	rd.draw_command_end_label()
+	rd_instance.rd.draw_command_end_label()
 	
 	return true
 
 #endregion
 
 #region Private Methods
-
-func _initialize_compute():
-	rd = RenderingServer.get_rendering_device()
-	
-	if !rd:
-		push_error("could not find rendering device, halting compute initialization")
-		return
-	
-	var sampler_state := RDSamplerState.new()
-	
-	sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
-	sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
-	sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	
-	linear_sampler = rd.sampler_create(sampler_state)
-	
-	sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
-	sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
-	sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
-	
-	nearest_sampler = rd.sampler_create(sampler_state)
-
 
 func _update_debug_enabled() -> void:
 	for compiled_shader_stage: CompiledShaderStage in _all_shader_stages.values():
@@ -355,6 +321,87 @@ func _recompile_all_shaders() -> void:
 		compiled_shader_stage.try_compile()
 
 #endregion
+
+class RenderingDeviceInstance:
+	static var _instances_by_rd: Dictionary[RenderingDevice, WeakRef]
+	
+	var rd: RenderingDevice
+	
+	var linear_sampler: RID
+	
+	var nearest_sampler: RID
+	
+	
+	static func get_instance() -> RenderingDeviceInstance:
+		var rd: RenderingDevice = RenderingServer.get_rendering_device()
+		
+		if !rd:
+			push_error("cannot find rendering device, returning null instance")
+			return null
+		
+		if _instances_by_rd.has(rd):
+			var instance: RenderingDeviceInstance = _instances_by_rd[rd].get_ref()
+			
+			if !instance:
+				push_error("cached rendering device instance is null, creating new one")
+				return RenderingDeviceInstance.new()
+			
+			return instance
+		
+		return RenderingDeviceInstance.new()
+	
+	
+	static func _instance_created(rd: RenderingDevice, instance: RenderingDeviceInstance) -> void:
+		_instances_by_rd[rd] = weakref(instance)
+	
+	
+	static func _instance_predeleted(rd: RenderingDevice) -> void:
+		_instances_by_rd.erase(rd)
+	
+	
+	func _init():
+		rd = RenderingServer.get_rendering_device()
+		
+		if !rd:
+			push_error("could not find rendering device, instance is invalid")
+			return
+		
+		var sampler_state := RDSamplerState.new()
+		
+		sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
+		sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_LINEAR
+		sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+		sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+		
+		linear_sampler = rd.sampler_create(sampler_state)
+		
+		sampler_state.min_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
+		sampler_state.mag_filter = RenderingDevice.SAMPLER_FILTER_NEAREST
+		sampler_state.repeat_u = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+		sampler_state.repeat_v = RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE
+		
+		nearest_sampler = rd.sampler_create(sampler_state)
+		
+		_instance_created(rd, self)
+	
+	
+	func _notification(what: int):
+		if what == NOTIFICATION_PREDELETE:
+			if !rd:
+				push_error("rendering device not available for instance predelete")
+				return
+			
+			_instance_predeleted(rd)
+			
+			if linear_sampler.is_valid():
+				rd.free_rid(linear_sampler)
+			
+			if nearest_sampler.is_valid():
+				rd.free_rid(nearest_sampler)
+	
+	
+	func is_valid() -> bool:
+		return !!rd
 
 
 class CompiledShaderStage:
