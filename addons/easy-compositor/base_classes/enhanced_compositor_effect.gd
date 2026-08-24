@@ -515,7 +515,7 @@ class CompiledShaderStage:
 		var error: String = shader_spirv.get_stage_compile_error(RenderingDevice.SHADER_STAGE_COMPUTE)
 		
 		if error:
-			push_error("shader compilation errors: \n", error)
+			push_error("shader compilation errors in %s: \n" % [shader_stage.resource_path.get_file()], error)
 			return false
 		
 		shader = rd.shader_create_from_spirv(shader_spirv)
