@@ -90,6 +90,8 @@ static func _static_init() -> void:
 
 
 func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
+	#RenderingServer.viewport_get_render_target(EditorInterface.get_editor_viewport_3d().get_viewport_rid())
+	
 	if !rd_instance.is_valid():
 		return
 	
