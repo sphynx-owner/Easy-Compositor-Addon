@@ -12,6 +12,8 @@ extends EnhancedCompositorEffect
 ## and depth buffers debug views
 @export var debug_page : int = 0
 
+@export var full_screen: bool = false
+
 var past_color : StringName = "past_color"
 
 @export var freeze : bool = false
@@ -41,7 +43,7 @@ func _enhanced_render_callback(render_size: Vector2i):
 		freeze,
 		draw_debug,
 		debug_page,
-		0
+		full_screen
 	]
 	
 	var color_image: RID = get_color_texture()

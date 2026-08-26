@@ -6,6 +6,8 @@
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
 
+#define store_full_screen_image(image, uvi) imageStore(output_color_image, uvi, imageLoad(image, uvi)); imageStore(past_color_image, uvi, imageLoad(image, uvi));
+
 layout(rgba16f, set = 0, binding = 0) uniform image2D past_color_image;
 layout(rgba16f, set = 0, binding = 1) uniform image2D output_color_image;
 layout(set = 0, binding = 2) uniform sampler2D color_sampler;
@@ -20,7 +22,7 @@ layout(push_constant, std430) uniform Params
 	int freeze;
 	int draw_debug;
 	int debug_page;
-	int nan3;
+	int full_screen;
 } params;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
@@ -30,7 +32,7 @@ void main()
 {
 	ivec2 render_size = ivec2(textureSize(color_sampler, 0));
 	
-	if (params.draw_debug != 0 && params.freeze == 0)
+	if (params.draw_debug != 0 && params.freeze == 0 && params.full_screen == 0)
 	{
 		render_size /= 2;
 	}
@@ -52,13 +54,60 @@ void main()
 	// must be on pixel center for whole values (tested)
 	vec2 uvn = vec2(uvi + vec2(0.5)) / render_size;
 
-	vec4 source = textureLod(color_sampler, uvn, 0.0);
-
 	if (params.draw_debug == 0) 
 	{
+		vec4 source = textureLod(color_sampler, uvn, 0.0);
+
 		imageStore(output_color_image, uvi, source);
 		imageStore(past_color_image, uvi, source);
 		return;
+	}
+
+	if (params.full_screen > 0)
+	{
+#ifdef DEBUG
+		if(params.debug_page == 0)
+		{
+			store_full_screen_image(debug_1_image, uvi);
+		}
+
+		if(params.debug_page == 1)
+		{
+			store_full_screen_image(debug_2_image, uvi);
+		}
+
+		if(params.debug_page == 2)
+		{
+			store_full_screen_image(debug_3_image, uvi);
+		}
+
+		if(params.debug_page == 3)
+		{
+			store_full_screen_image(debug_4_image, uvi);
+		}
+
+		if(params.debug_page == 4)
+		{
+			store_full_screen_image(debug_5_image, uvi);
+		}
+
+		if(params.debug_page == 5)
+		{
+			store_full_screen_image(debug_6_image, uvi);
+		}
+
+		if(params.debug_page == 6)
+		{
+			store_full_screen_image(debug_7_image, uvi);
+		}
+
+		if(params.debug_page == 7)
+		{
+			store_full_screen_image(debug_8_image, uvi);
+		}
+
+		return;
+#endif
 	}
 
 	vec4 tl_col;
