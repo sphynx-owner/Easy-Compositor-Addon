@@ -134,12 +134,10 @@ func _enhanced_render_callback(render_size: Vector2i):
 func ensure_texture(
 	texture_name: StringName,
 	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
-	render_size_multiplier: Vector2 = Vector2(1, 1),
+	render_size: Vector2i = _current_render_scene_buffers.get_internal_size(),
 	usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
 ) -> bool:
 	assert(_current_render_scene_buffers, "current render scene buffers must be set")
-	
-	var render_size: Vector2i = Vector2(_current_render_scene_buffers.get_internal_size()) * render_size_multiplier
 	
 	if _current_render_scene_buffers.has_texture(context, texture_name):
 		var tf: RDTextureFormat = _current_render_scene_buffers.get_texture_format(context, texture_name)
@@ -255,10 +253,21 @@ func get_push_constants(
 
 func get_groups_count(render_size: Vector3i, group_size: Vector3i) -> Vector3i:
 	return Vector3i(
-		floori((render_size.x - 1) / group_size.x + 1),
-		floori((render_size.y - 1) / group_size.y + 1),
-		floori((render_size.z - 1) / group_size.z + 1)
+		divide_by_tile_size(render_size.x, group_size.x),
+		divide_by_tile_size(render_size.y, group_size.y),
+		divide_by_tile_size(render_size.z, group_size.z)
 	)
+
+
+func divide_vector2i_by_tile_size(size: Vector2i, tile_size: Vector2i) -> Vector2i:
+	return Vector2i(
+		divide_by_tile_size(size.x, tile_size.x),
+		divide_by_tile_size(size.y, tile_size.y)
+	)
+
+
+func divide_by_tile_size(size: int, tile_size: int) -> int:
+	return floori((size - 1) / tile_size + 1)
 
 
 func dispatch_stage(
