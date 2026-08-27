@@ -31,7 +31,7 @@ const DEBUG_UNIFORM_SET: int = 1
 
 const DEBUG_BINDING_START_OFFSET: int = 10
 
-const DEBUG_TEXTURE_COUNT: int = 8
+const DEBUG_TEXTURE_COUNT: int = 12
 
 static var DEBUG_SNIPPET: String
 

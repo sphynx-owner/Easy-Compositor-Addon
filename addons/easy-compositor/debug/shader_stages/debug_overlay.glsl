@@ -106,6 +106,26 @@ void main()
 			store_full_screen_image(debug_8_image, uvi);
 		}
 
+		if(params.debug_page == 8)
+		{
+			store_full_screen_image(debug_9_image, uvi);
+		}
+
+		if(params.debug_page == 9)
+		{
+			store_full_screen_image(debug_10_image, uvi);
+		}
+
+		if(params.debug_page == 10)
+		{
+			store_full_screen_image(debug_11_image, uvi);
+		}
+
+		if(params.debug_page == 11)
+		{
+			store_full_screen_image(debug_12_image, uvi);
+		}
+
 		return;
 #endif
 	}
@@ -133,6 +153,14 @@ void main()
 		tr_col = imageLoad(debug_6_image, uvi * 2);
 		bl_col = imageLoad(debug_7_image, uvi * 2);
 		br_col = imageLoad(debug_8_image, uvi * 2);
+	}
+
+	if(params.debug_page == 2)
+	{
+		tl_col = imageLoad(debug_9_image, uvi * 2);
+		tr_col = imageLoad(debug_10_image, uvi * 2);
+		bl_col = imageLoad(debug_11_image, uvi * 2);
+		br_col = imageLoad(debug_12_image, uvi * 2);
 	}
 #endif
 
