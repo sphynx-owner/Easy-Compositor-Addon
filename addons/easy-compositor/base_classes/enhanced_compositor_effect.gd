@@ -267,7 +267,7 @@ func divide_vector2i_by_tile_size(size: Vector2i, tile_size: Vector2i) -> Vector
 
 
 func divide_by_tile_size(size: int, tile_size: int) -> int:
-	return floori((size - 1) / tile_size + 1)
+	return (size - 1) / tile_size + 1
 
 
 func dispatch_stage(
