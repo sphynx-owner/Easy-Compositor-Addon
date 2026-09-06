@@ -43,7 +43,16 @@ func _enhanced_render_callback(render_size: Vector2i):
 	
 	var color_image: RID = get_color_texture()
 	
-	ensure_texture(past_color)
+	# NOTICE @sphynx-owner: initializing the past_color texture to be non-discardable,
+	# so that it's persisted between frames.
+	ensure_texture(
+		past_color,
+		RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
+		_current_render_scene_buffers.get_internal_size(),
+		RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT,
+		false,
+		false
+	)
 	
 	var past_color_image: RID = get_texture(past_color)
 	

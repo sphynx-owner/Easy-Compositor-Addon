@@ -41,10 +41,12 @@ var shader: RID
 var pipeline: RID
 
 
-func _init(p_rd: RenderingDevice, p_shader_stage: RDShaderFile, p_debug: bool = false) -> void:
+func _init(rd_instance: RenderingDeviceInstance, p_shader_stage: RDShaderFile, p_debug: bool = false) -> void:
+	assert(rd_instance and rd_instance.is_valid(), "rd_instance must be valid to create shader stage")
+	
 	_init_gate = true
 	
-	rd = p_rd
+	rd = rd_instance.rd
 	
 	shader_stage = p_shader_stage
 	

@@ -126,7 +126,9 @@ func ensure_texture(
 	texture_name: StringName,
 	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
 	render_size: Vector2i = _current_render_scene_buffers.get_internal_size(),
-	usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
+	usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT,
+	unique = false,
+	discardable = true
 ) -> bool:
 	assert(_current_render_scene_buffers, "current render scene buffers must be set")
 	
@@ -146,12 +148,8 @@ func ensure_texture(
 			render_size,
 			PLACEHOLDER_VIEW_COUNT,
 			1,
-			true,
-			# HACK @sphynx-owner: having it at false without knowing what this means.
-			# My worry is that this means textures are discarded as soon as possible, or
-			# maybe discardable manually, or something. I don't know yet.
-			# TODO @sphynx-owner: learn.
-			false
+			unique,
+			discardable
 		)
 		
 		return true
@@ -210,7 +208,7 @@ func dispatch_stage(
 	color: Color = Color(1, 1, 1, 1)
 ) -> bool:
 	if !_all_shader_stages.has(stage):
-		_all_shader_stages[stage] = CompiledShaderStage.new(_current_rd_instance.rd, stage, debug)
+		_all_shader_stages[stage] = CompiledShaderStage.new(_current_rd_instance, stage, debug)
 	
 	var compiled_shader_stage: CompiledShaderStage = _all_shader_stages[stage]
 	
