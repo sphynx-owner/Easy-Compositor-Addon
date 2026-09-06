@@ -15,10 +15,6 @@ layout(set = 0, binding = 2) uniform sampler2D color_sampler;
 
 layout(push_constant, std430) uniform Params 
 {
-	float nan_fl_1;
-	float nan_fl_2;
-	float nan_fl_3;
-	float nan_fl_4;
 	int freeze;
 	int draw_debug;
 	int debug_page;
@@ -26,7 +22,6 @@ layout(push_constant, std430) uniform Params
 } params;
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
-
 
 void main() 
 {
