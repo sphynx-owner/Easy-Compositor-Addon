@@ -199,13 +199,20 @@ func get_buffer_uniform(buffer: RID, binding: int) -> RDUniform:
 	return EasyRenderingUtils.get_buffer_uniform(buffer, binding)
 
 
+func begin_compute(
+	label: String = "DefaultLabel",
+	color: Color = Color(1, 1, 1, 1)
+) -> void:
+	assert(_current_rd_instance, "No current rendering device instance available, did you call this outside the render callback?")
+	
+	EasyRenderingUtils.begin_compute(_current_rd_instance, label, color)
+
+
 func dispatch_stage(
 	stage: RDShaderFile,
 	uniforms: Array[RDUniform],
 	push_constants: PackedByteArray,
-	dispatch_size: Vector3i,
-	label: String = "DefaultLabel",
-	color: Color = Color(1, 1, 1, 1)
+	dispatch_size: Vector3i
 ) -> bool:
 	if !_all_shader_stages.has(stage):
 		_all_shader_stages[stage] = CompiledShaderStage.new(_current_rd_instance, stage, debug)
@@ -216,15 +223,9 @@ func dispatch_stage(
 		push_error("cannot dispatch invalid shader stage")
 		return false
 	
-	_current_rd_instance.rd.draw_command_begin_label(label + " " + str(PLACEHOLDER_VIEW_INDEX), color)
+	assert(_current_rd_instance, "No current rendering device instance available, did you call this outside the render callback?")
 	
-	var tex_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEFAULT_TEXTURE_UNIFORM_SET, uniforms)
-	
-	var compute_list = _current_rd_instance.rd.compute_list_begin()
-	
-	_current_rd_instance.rd.compute_list_bind_compute_pipeline(compute_list, compiled_shader_stage.pipeline)
-	
-	_current_rd_instance.rd.compute_list_bind_uniform_set(compute_list, tex_uniform_set, DEFAULT_TEXTURE_UNIFORM_SET)
+	var uniform_sets: Array[Array] = [uniforms]
 	
 	if compiled_shader_stage.needs_debug():
 		var debug_uniforms: Array[RDUniform]
@@ -232,20 +233,28 @@ func dispatch_stage(
 		for i in DEBUG_TEXTURE_COUNT:
 			debug_uniforms.append(get_image_uniform(all_debug_images[i], DEBUG_BINDING_START_OFFSET + i))
 		
-		var debug_uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, DEBUG_UNIFORM_SET, debug_uniforms)
-		
-		_current_rd_instance.rd.compute_list_bind_uniform_set(compute_list, debug_uniform_set, DEBUG_UNIFORM_SET)
+		uniform_sets.append(debug_uniforms)
 	
-	if !push_constants.is_empty():
-		_current_rd_instance.rd.compute_list_set_push_constant(compute_list, push_constants, push_constants.size())
+	return EasyRenderingUtils.dispatch_stage(
+		_current_rd_instance,
+		compiled_shader_stage,
+		uniform_sets,
+		push_constants,
+		dispatch_size,
+		true
+	)
+
+
+func add_barrier() -> void:
+	assert(_current_rd_instance, "No current rendering device instance available, did you call this outside the render callback?")
 	
-	_current_rd_instance.rd.compute_list_dispatch(compute_list, dispatch_size.x, dispatch_size.y, dispatch_size.z)
+	EasyRenderingUtils.add_barrier(_current_rd_instance)
+
+
+func end_compute() -> void:
+	assert(_current_rd_instance, "No current rendering device instance available, did you call this outside the render callback?")
 	
-	_current_rd_instance.rd.compute_list_end()
-	
-	_current_rd_instance.rd.draw_command_end_label()
-	
-	return true
+	EasyRenderingUtils.end_compute(_current_rd_instance)
 
 #endregion
 
