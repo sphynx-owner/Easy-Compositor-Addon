@@ -30,8 +30,6 @@ func _validate_property(property: Dictionary) -> void:
 
 
 func _enhanced_render_callback(render_size: Vector2i):
-	_current_rd_instance.rd.draw_command_begin_label("Debug", Color(1.0, 1.0, 1.0, 1.0))
-	
 	var float_push_constants: PackedFloat32Array = []
 	
 	var int_push_constant : PackedInt32Array = [
@@ -56,6 +54,8 @@ func _enhanced_render_callback(render_size: Vector2i):
 	
 	var past_color_image: RID = get_texture(past_color)
 	
+	begin_compute()
+	
 	dispatch_stage(
 		overlay_stage, 
 		[
@@ -64,8 +64,7 @@ func _enhanced_render_callback(render_size: Vector2i):
 			get_sampler_uniform(color_image, 2)
 		],
 		EasyRenderingUtils.get_push_constants(float_push_constants, int_push_constant),
-		EasyRenderingUtils.get_groups_count(Vector3i(render_size.x, render_size.y, 1), DEFAULT_GROUP_SIZE), 
-		"Debug Overlay"
+		EasyRenderingUtils.get_groups_count(Vector3i(render_size.x, render_size.y, 1), DEFAULT_GROUP_SIZE)
 	)
 	
-	_current_rd_instance.rd.draw_command_end_label()
+	end_compute()
