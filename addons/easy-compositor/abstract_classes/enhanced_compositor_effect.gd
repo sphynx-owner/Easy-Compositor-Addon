@@ -48,7 +48,7 @@ static var DEBUG_TEXTURE_NAMES: Array[StringName]
 
 var context: StringName = DEFAULT_CONTEXT
 
-var _all_shader_stages : Dictionary[RDShaderFile, CompiledShaderStage]
+var _all_shader_stages: Dictionary[RDShaderFile, CompiledShaderStage]
 
 var _current_render_scene_buffers: RenderSceneBuffersRD
 

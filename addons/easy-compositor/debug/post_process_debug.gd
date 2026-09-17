@@ -2,21 +2,21 @@
 class_name DebugCompositorEffect
 extends EnhancedCompositorEffect
 
-@export_storage var overlay_stage : RDShaderFile = preload("res://addons/easy-compositor/debug/shader_stages/debug_overlay.glsl")
+@export_storage var overlay_stage: RDShaderFile = preload("res://addons/easy-compositor/debug/shader_stages/debug_overlay.glsl")
 
 ## wether to display debug views for velocity and depth 
 ## buffers
-@export var draw_debug : bool = false
+@export var draw_debug: bool = false
 
 ## currently 0 - 1, flip between velocity buffers
 ## and depth buffers debug views
-@export var debug_page : int = 0
+@export var debug_page: int = 0
 
 @export var full_screen: bool = false
 
-var past_color : StringName = "past_color"
+var past_color: StringName = "past_color"
 
-@export var freeze : bool = false
+@export var freeze: bool = false
 
 func _init():
 	context = DEBUG_CONTEXT
@@ -32,7 +32,7 @@ func _validate_property(property: Dictionary) -> void:
 func _enhanced_render_callback(render_size: Vector2i):
 	var float_push_constants: PackedFloat32Array = []
 	
-	var int_push_constant : PackedInt32Array = [
+	var int_push_constant: PackedInt32Array = [
 		freeze,
 		draw_debug,
 		debug_page,

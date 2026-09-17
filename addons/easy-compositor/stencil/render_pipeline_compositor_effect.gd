@@ -12,14 +12,15 @@ var depth_texture: RID
 var framebuffer: RID
 var framebuf_format: int
 var pipeline: RID
-var vertex_format : int
-var vertex_buffer : RID
-var vertex_array : RID
+var vertex_format: int
+var vertex_buffer: RID
+var vertex_array: RID
 var clear_colors := PackedColorArray([Color.BLACK])
 
 var output_texture := Texture2DRD.new()
 
 var mutex := Mutex.new()
+
 @export var shader_dirty := true
 
 # Called when this resource is constructed.

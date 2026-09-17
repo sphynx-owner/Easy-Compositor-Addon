@@ -1,5 +1,9 @@
 class_name EasyRenderingUtils
 
+const DEFAULT_TEXTURE_DATA_FORMAT: RenderingDevice.DataFormat = RenderingDevice.DataFormat.DATA_FORMAT_R32G32B32A32_SFLOAT
+
+const DEFAULT_TEXTURE_USAGE_BITS: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
+
 static var compute_lists_by_rd_instance: Dictionary[RenderingDeviceInstance, int]
 
 
@@ -81,8 +85,8 @@ static func create_texture(
 	rd_instance: RenderingDeviceInstance,
 	size: Vector2i,
 	data: Array[PackedByteArray] = [],
-	texture_format: RenderingDevice.DataFormat = RenderingDevice.DATA_FORMAT_R16G16B16A16_SFLOAT,
-	usage_bits: int = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT,
+	texture_format: RenderingDevice.DataFormat = DEFAULT_TEXTURE_DATA_FORMAT,
+	usage_bits: int = DEFAULT_TEXTURE_USAGE_BITS,
 	discardable = false
 ) -> RenderingDeviceTexture:
 	assert(rd_instance and rd_instance.is_valid(), "rd_instance must be valid")
