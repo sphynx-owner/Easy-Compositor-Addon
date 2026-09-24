@@ -25,7 +25,7 @@ static func get_or_add_active_compositor_effect(node: Node, type: GDScript) -> C
 		push_error("could not create a new compositor effect")
 		return null
 	
-	# NOTICE @sphynx-skillcap: deliberately setting the array again to trigger the setter's update.
+	# NOTICE @sphynx-owner: deliberately setting the array again to trigger the setter's update.
 	# Simply using append() would not update the compositor.
 	compositor.compositor_effects = compositor.compositor_effects + [new_effect]
 	
