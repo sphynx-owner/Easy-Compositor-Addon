@@ -113,7 +113,7 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 	all_debug_images.clear()
 
 
-func _enhanced_render_callback(render_size: Vector2i):
+func _enhanced_render_callback(render_size: Vector2i) -> void:
 	pass
 
 #endregion
