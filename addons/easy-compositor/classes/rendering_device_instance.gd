@@ -36,10 +36,6 @@ static func _instance_created(rd: RenderingDevice, instance: RenderingDeviceInst
 	_instances_by_rd[rd] = instance
 
 
-static func _instance_predeleted(rd: RenderingDevice) -> void:
-	_instances_by_rd.erase(rd)
-
-
 func _init(p_rd: RenderingDevice):
 	if _instances_by_rd.has(p_rd):
 		push_error("cannot properly create RenderingDeviceInstance, rendering device already has an instance created for it")
@@ -75,8 +71,6 @@ func _notification(what: int):
 		if !rd:
 			push_error("rendering device not available for instance predelete")
 			return
-		
-		_instance_predeleted(rd)
 		
 		if linear_sampler.is_valid():
 			rd.free_rid(linear_sampler)
