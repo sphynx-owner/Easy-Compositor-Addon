@@ -111,6 +111,12 @@ func _render_callback(p_effect_callback_type: int, p_render_data: RenderData):
 	_enhanced_render_callback(render_size)
 	
 	all_debug_images.clear()
+	
+	# We set all these to null, especially the _current_rd_instance so that it would correctly get dereferenced and freed
+	# if possible.
+	_current_render_scene_buffers = null
+	_current_render_scene_data = null
+	_current_rd_instance = null
 
 
 func _enhanced_render_callback(render_size: Vector2i) -> void:

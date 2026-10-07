@@ -34,6 +34,10 @@ static func get_instance() -> RenderingDeviceInstance:
 
 static func _instance_created(rd: RenderingDevice, instance: RenderingDeviceInstance) -> void:
 	_instances_by_rd[rd] = instance
+	
+	# We don't want the reference held by _instances_by_rd to count towards the lifetime of the
+	# instance, so if any other reference holder dropped it it would get freed automatically
+	instance.unreference()
 
 
 static func _instance_predeleted(rd: RenderingDevice) -> void:
