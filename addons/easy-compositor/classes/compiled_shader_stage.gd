@@ -88,30 +88,32 @@ func try_compile() -> bool:
 	
 	_needs_debug = false
 	
-	if debug:
-		if !shader_stage.resource_path:
-			push_error("shader file does not have a resource path, cannot generate debug version")
-			return false
+	if !shader_stage.resource_path:
+		push_error("shader file does not have a resource path, cannot generate shader stage")
+		return false
+	
+	var file: FileAccess = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
+	
+	if !file:
+		push_error("could not open file %s for shader stage generation" % [shader_stage.resource_path])
+		return false
+	
+	var file_text: String = file.get_as_text()
+	
+	file_text = file_text.replace("#[compute]", "")
+	
+	file_text = file_text.replace(EnhancedCompositorEffect.VERSION_SYMBOL, EnhancedCompositorEffect.VERSION_SNIPPET)
+	
+	if debug and file_text.contains(EnhancedCompositorEffect.DEBUG_SYMBOL):
+		file_text = file_text.replace(EnhancedCompositorEffect.DEBUG_SYMBOL, EnhancedCompositorEffect.DEBUG_SNIPPET)
 		
-		var file: FileAccess = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
-		
-		var file_text: String = file.get_as_text()
-		
-		file_text = file_text.replace("#[compute]", "")
-		
-		if file_text.contains(EnhancedCompositorEffect.DEBUG_SYMBOL):
-			file_text = file_text.replace(EnhancedCompositorEffect.DEBUG_SYMBOL, EnhancedCompositorEffect.DEBUG_SNIPPET)
-			
-			_needs_debug = true
-		
-		var shader_source: RDShaderSource = RDShaderSource.new()
-		
-		shader_source.set_stage_source(RenderingDevice.SHADER_STAGE_COMPUTE, file_text)
-		
-		shader_spirv = rd.shader_compile_spirv_from_source(shader_source, false)
-		
-	else:
-		shader_spirv = shader_stage.get_spirv()
+		_needs_debug = true
+	
+	var shader_source: RDShaderSource = RDShaderSource.new()
+	
+	shader_source.set_stage_source(RenderingDevice.SHADER_STAGE_COMPUTE, file_text)
+	
+	shader_spirv = rd.shader_compile_spirv_from_source(shader_source, false)
 	
 	var error: String = shader_spirv.get_stage_compile_error(RenderingDevice.SHADER_STAGE_COMPUTE)
 	

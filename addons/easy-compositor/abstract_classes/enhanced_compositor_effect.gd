@@ -19,6 +19,8 @@ const PLACEHOLDER_VIEW_INDEX: int = 0
 const PLACEHOLDER_VIEW_COUNT: int = 1
 # ---------------------------------------
 
+const VERSION_SYMBOL: String = "// ENGINE_VERSION"
+
 const DEFAULT_GROUP_SIZE: Vector3 = Vector3(16, 16, 1)
 
 const DEFAULT_TEXTURE_UNIFORM_SET: int = 0
@@ -32,6 +34,8 @@ const DEBUG_UNIFORM_SET: int = 1
 const DEBUG_BINDING_START_OFFSET: int = 10
 
 const DEBUG_TEXTURE_COUNT: int = 12
+
+static var VERSION_SNIPPET: String
 
 static var DEBUG_SNIPPET: String
 
@@ -61,6 +65,10 @@ var all_debug_images: Array[RID]
 #region Virtual Methods
 
 static func _static_init() -> void:
+	var version_info: Dictionary = Engine.get_version_info()
+	
+	VERSION_SNIPPET = "#define ENGINE_VERSION_%s_%s" % [version_info.major, version_info.minor]
+	
 	var new_debug_snippet: String = "#define DEBUG\n"
 	
 	var new_debug_texture_names: Array[StringName]
