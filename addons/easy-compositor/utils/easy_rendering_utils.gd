@@ -40,6 +40,16 @@ static func get_buffer_uniform(buffer: RID, binding: int) -> RDUniform:
 	return uniform
 
 
+static func get_storage_buffer_uniform(buffer: RID, binding: int) -> RDUniform:
+	var uniform := RDUniform.new()
+	
+	uniform.uniform_tyep = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	uniform.binding = binding
+	uniform.add_id(buffer)
+	
+	return uniform
+
+
 static func get_push_constants(
 	floats: PackedFloat32Array = [], 
 	ints: PackedInt32Array = [], 
@@ -101,11 +111,15 @@ static func create_texture(
 	
 	var view: RDTextureView = RDTextureView.new()
 	
-	return RenderingDeviceTexture.new(rd_instance, rd_instance.rd.texture_create(
-		format,
-		view,
-		data
-	))
+	return RenderingDeviceTexture.new(
+		rd_instance,
+		rd_instance.rd.texture_create(
+			format,
+			view,
+			data
+		),
+		format
+	)
 
 
 static func begin_compute(
@@ -187,3 +201,42 @@ static func end_compute(rd_instance: RenderingDeviceInstance) -> void:
 	rd_instance.rd.draw_command_end_label()
 	
 	compute_lists_by_rd_instance.erase(rd_instance)
+
+
+static func get_viable_rectangle_dimensions(primitive_count: int, primitive_dimensions: Vector2i = Vector2i(1, 1)) -> Vector2i:
+	var ratio: float = float(primitive_dimensions.x) / primitive_dimensions.y
+	
+	var flip: bool = false
+	
+	if ratio > 1.0:
+		flip = true
+		ratio = 1.0 / ratio
+	
+	var base_root: int = ceil(sqrt(primitive_count * ratio))
+	
+	var lenience: int = 0
+	
+	var iteration_count: int = 0
+	
+	var root_distance: int = 0
+	
+	# HACK @sphynx-owner: some magic cap, with primitive count of 10000 and default primitive size does not surpass 20 iterations
+	while iteration_count < 100:
+		iteration_count += 1
+		
+		root_distance += 1
+		
+		@warning_ignore("integer_division")
+		var root: int = base_root + (root_distance / 2) * (1 if iteration_count % 2 else -1)
+		
+		@warning_ignore("integer_division")
+		var root_2: int = (primitive_count - 1) / root + 1
+		
+		var result: int = root * root_2 - primitive_count
+		
+		if result >= 0 and result <= lenience:
+			return Vector2(root if flip else root_2, root_2 if flip else root)
+		
+		lenience += 2
+	
+	return Vector2(-1, -1)
