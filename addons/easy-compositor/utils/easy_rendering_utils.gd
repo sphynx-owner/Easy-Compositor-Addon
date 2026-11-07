@@ -122,6 +122,26 @@ static func create_texture(
 	)
 
 
+static func create_texture_from_format(
+	rd_instance: RenderingDeviceInstance,
+	format: RDTextureFormat,
+	data: Array[PackedByteArray] = [],
+) -> RenderingDeviceTexture:
+	assert(rd_instance and rd_instance.is_valid(), "rd_instance must be valid")
+	
+	var view: RDTextureView = RDTextureView.new()
+	
+	return RenderingDeviceTexture.new(
+		rd_instance,
+		rd_instance.rd.texture_create(
+			format,
+			view,
+			data
+		),
+		format
+	)
+
+
 static func begin_compute(
 	rd_instance: RenderingDeviceInstance,
 	label: String = "DefaultLabel",
@@ -169,7 +189,14 @@ static func dispatch_stage(
 		if uniforms.is_empty():
 			continue
 		
-		var uniform_set: RID = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, i, uniforms)
+		var uniform_set: RID
+		
+		if rd_instance.is_local:
+			# TODO @sphynx-owner: allow caching of uniform sets.
+			uniform_set = rd_instance.rd.uniform_set_create(uniforms, compiled_shader_stage.shader, i)
+			
+		else:
+			uniform_set = UniformSetCacheRD.get_cache(compiled_shader_stage.shader, i, uniforms)
 		
 		rd_instance.rd.compute_list_bind_uniform_set(compute_list, uniform_set, i)
 	

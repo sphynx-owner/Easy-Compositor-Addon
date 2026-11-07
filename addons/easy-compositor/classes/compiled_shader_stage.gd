@@ -102,6 +102,25 @@ func try_compile() -> bool:
 	
 	file_text = file_text.replace("#[compute]", "")
 	
+	var found_index: int = -1
+	
+	while true:
+		found_index = file_text.find("#include", found_index + 1)
+		
+		if found_index == -1:
+			break
+		
+		var open_quotes_index: int = file_text.find("\"", found_index)
+		var close_quotes_index: int = file_text.find("\"", open_quotes_index + 1)
+		
+		var include_path: String = file_text.substr(open_quotes_index + 1, close_quotes_index - open_quotes_index - 1)
+		
+		var full_path: String = shader_stage.resource_path + "/../" + include_path
+		
+		var included_file: FileAccess = FileAccess.open(full_path, FileAccess.READ)
+		
+		file_text = file_text.substr(0, found_index) + included_file.get_as_text() + file_text.substr(close_quotes_index + 1, file_text.length() - close_quotes_index - 1)
+	
 	file_text = file_text.replace(EnhancedCompositorEffect.VERSION_SYMBOL, EnhancedCompositorEffect.VERSION_SNIPPET)
 	
 	if debug and file_text.contains(EnhancedCompositorEffect.DEBUG_SYMBOL):

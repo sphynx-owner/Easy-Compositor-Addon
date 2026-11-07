@@ -27,6 +27,25 @@ func _notification(what: int) -> void:
 			rd.free_rid(texture)
 
 
+## WARNING: passing [code]true[/code] to [param copy_data] might trigger the cpu waiting on the GPU to release the texture
+func create_copy(copy_data: bool = false) -> RenderingDeviceTexture:
+	if !format_cache:
+		push_error("cannot get texture copy, no format cached")
+		return null
+	
+	var data: Array[PackedByteArray]
+	
+	if copy_data:
+		for i in format_cache.depth:
+			data.append(rd.texture_get_data(texture, i))
+	
+	return EasyRenderingUtils.create_texture_from_format(
+		RenderingDeviceInstance.get_instance(rd),
+		format_cache,
+		data
+	)
+
+
 func get_size() -> Vector2i:
 	if !format_cache:
 		return Vector2i(-1, -1)

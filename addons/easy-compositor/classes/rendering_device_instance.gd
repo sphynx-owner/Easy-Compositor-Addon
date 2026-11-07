@@ -8,13 +8,16 @@ static var _instances_by_rd: Dictionary[RenderingDevice, RenderingDeviceInstance
 
 var rd: RenderingDevice
 
+var is_local: bool = false
+
 var linear_sampler: RID
 
 var nearest_sampler: RID
 
 
-static func get_instance() -> RenderingDeviceInstance:
-	var rd: RenderingDevice = RenderingServer.get_rendering_device()
+static func get_instance(rd: RenderingDevice = null) -> RenderingDeviceInstance:
+	if !rd:
+		rd = RenderingServer.get_rendering_device()
 	
 	if !rd:
 		push_error("cannot find rendering device, returning null instance")
@@ -32,6 +35,12 @@ static func get_instance() -> RenderingDeviceInstance:
 	return RenderingDeviceInstance.new(rd)
 
 
+static func create_local() -> RenderingDeviceInstance:
+	var rd: RenderingDevice = RenderingServer.create_local_rendering_device()
+	
+	return RenderingDeviceInstance.new(rd, true)
+
+
 static func _instance_created(rd: RenderingDevice, instance: RenderingDeviceInstance) -> void:
 	_instances_by_rd[rd] = instance
 	
@@ -44,12 +53,14 @@ static func _instance_predeleted(rd: RenderingDevice) -> void:
 	_instances_by_rd.erase(rd)
 
 
-func _init(p_rd: RenderingDevice):
+func _init(p_rd: RenderingDevice, p_is_local: bool = false):
 	if _instances_by_rd.has(p_rd):
 		push_error("cannot properly create RenderingDeviceInstance, rendering device already has an instance created for it")
 		return
 	
 	rd = p_rd
+	
+	is_local = p_is_local
 	
 	if !rd:
 		push_error("could not find rendering device, instance is invalid")
@@ -80,6 +91,9 @@ func _notification(what: int):
 			push_error("rendering device not available for instance predelete")
 			return
 		
+		if is_local:
+			rd.sync()
+		
 		_instance_predeleted(rd)
 		
 		if linear_sampler.is_valid():
@@ -87,6 +101,9 @@ func _notification(what: int):
 		
 		if nearest_sampler.is_valid():
 			rd.free_rid(nearest_sampler)
+		
+		if is_local:
+			rd.free()
 
 
 func is_valid() -> bool:
