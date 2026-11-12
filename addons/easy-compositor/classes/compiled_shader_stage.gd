@@ -92,13 +92,7 @@ func try_compile() -> bool:
 		push_error("shader file does not have a resource path, cannot generate shader stage")
 		return false
 	
-	var file: FileAccess = FileAccess.open(shader_stage.resource_path, FileAccess.READ)
-	
-	if !file:
-		push_error("could not open file %s for shader stage generation" % [shader_stage.resource_path])
-		return false
-	
-	var file_text: String = file.get_as_text()
+	var file_text: String = _get_shader_file_text(shader_stage)
 	
 	file_text = file_text.replace("#[compute]", "")
 	
@@ -146,6 +140,21 @@ func try_compile() -> bool:
 	_is_compiled = true
 	
 	return true
+
+
+func _get_shader_file_text(shader_file: RDShaderFile) -> String:
+	var path: String = shader_stage.resource_path
+	
+	if !OS.has_feature("editor"):
+		path = path.replace(".glsl", ".glsl.txt")
+	
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	
+	if !file:
+		push_error("could not open file %s for shader stage generation" % [path])
+		return ""
+	
+	return file.get_as_text()
 
 
 func _free_rids() -> void:
